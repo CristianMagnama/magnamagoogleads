@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Magnama — Builder de Estrategia Google Ads</title>
+<style>
+:root{
+  --mag:#1a56db;--mag-l:#e8f0fe;
+  --ok:#2d6a2d;--ok-bg:#eaf3de;
+  --over:#a32d2d;--over-bg:#fcebeb;
+  --warn:#854f0b;--warn-bg:#fef3c7;
+  --bg:#f5f6fa;--surf:#fff;--surf2:#f1f3f8;
+  --bd:rgba(0,0,0,.11);--bd2:rgba(0,0,0,.18);
+  --tx:#1a1a2e;--tx2:#555570;--tx3:#8888a0;
+  --r:10px;--rl:14px;
+  --comment-red:#dc2626;--comment-red-bg:#fef2f2;--comment-red-bd:#fca5a5;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;background:var(--bg);color:var(--tx);min-height:100vh}
+
+/* HEADER */
+.hdr{background:var(--mag);color:#fff;padding:0 1.5rem;display:flex;align-items:center;height:56px;position:sticky;top:0;z-index:200;box-shadow:0 2px 10px rgba(26,86,219,.35);gap:10px}
+.hdr-logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;white-space:nowrap;flex-shrink:0}
+.hdr-dot{width:26px;height:26px;background:#fff;border-radius:7px;display:flex;align-items:center;justify-content:center}
+.hdr-dot span{color:var(--mag);font-weight:800;font-size:13px}
+.hdr-sep{opacity:.3;font-size:22px;font-weight:200;flex-shrink:0}
+.hdr-client{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:8px;color:#fff;font-size:14px;font-weight:500;padding:5px 11px;outline:none;flex:1;min-width:120px;max-width:280px;font-family:inherit}
+.hdr-client::placeholder{color:rgba(255,255,255,.4)}
+.hdr-client:focus{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.65)}
+.hdr-right{display:flex;align-items:center;gap:10px;margin-left:auto;flex-shrink:0}
+.hdr-sbadge{padding:4px 12px;border-radius:14px;font-size:12px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:all .15s}
+.s-draft{background:rgba(255,255,255,.2);color:#fff}
+.s-review{background:#fef3c7;color:#854f0b}
+.s-approved{background:#eaf3de;color:#2d6a2d}
+
+/* LAYOUT */
+.body{max-width:960px;margin:0 auto;padding:2rem 1.5rem}
+.tabs{display:flex;gap:8px;margin-bottom:1.5rem}
+.tab{padding:8px 20px;border-radius:22px;border:1.5px solid var(--bd2);background:transparent;cursor:pointer;font-size:13px;font-weight:500;color:var(--tx2);transition:all .15s;font-family:inherit}
+.tab.active{background:var(--mag);color:#fff;border-color:var(--mag)}
+.tab:hover:not(.active){background:var(--surf2)}
+.view{display:none}.view.active{display:block}
+
+/* CARDS */
+.card{background:var(--surf);border:.5px solid var(--bd);border-radius:var(--rl);padding:1.25rem 1.5rem;margin-bottom:1rem}
+.card-title{font-size:11px;font-weight:600;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:1rem}
+
+/* FIELDS */
+.flbl{font-size:12px;color:var(--tx2);margin-bottom:4px;display:flex;justify-content:space-between;align-items:center}
+.frow{margin-bottom:.75rem}
+.char{font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;flex-shrink:0}
+.c-e{background:var(--surf2);color:var(--tx3)}
+.c-ok{background:var(--ok-bg);color:var(--ok)}
+.c-ov{background:var(--over-bg);color:var(--over)}
+
+input[type=text],textarea,select{width:100%;padding:8px 11px;font-size:13px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--surf);color:var(--tx);font-family:inherit;transition:border-color .15s,box-shadow .15s}
+input[type=text]:focus,textarea:focus,select:focus{outline:none;border-color:var(--mag);box-shadow:0 0 0 3px rgba(26,86,219,.1)}
+textarea{resize:vertical;min-height:62px;line-height:1.5}
+select{cursor:pointer}
+
+/* FIELD WITH COMMENT STATE */
+.field-wrap{position:relative}
+.field-wrap.has-comment input[type=text],
+.field-wrap.has-comment textarea{border-color:var(--comment-red)!important;background:var(--comment-red-bg)!important;box-shadow:0 0 0 3px rgba(220,38,38,.1)!important}
+.comment-bubble{display:none;background:var(--comment-red-bg);border:1px solid var(--comment-red-bd);border-radius:0 0 var(--r) var(--r);padding:8px 10px;margin-top:-1px}
+.field-wrap.has-comment .comment-bubble{display:block}
+.comment-bubble-text{font-size:12px;color:var(--comment-red);font-weight:500;line-height:1.5;margin-bottom:6px}
+.comment-bubble-actions{display:flex;gap:6px;align-items:center}
+.comment-bubble-input{font-size:12px;padding:5px 9px;border-radius:7px;border:1px solid var(--comment-red-bd);background:#fff;color:var(--tx);flex:1;font-family:inherit}
+.comment-bubble-input:focus{outline:none;border-color:var(--comment-red)}
+.btn-comment-save{padding:5px 10px;font-size:12px;border-radius:7px;border:none;background:var(--comment-red);color:#fff;cursor:pointer;font-family:inherit;font-weight:500}
+.btn-comment-clear{padding:5px 10px;font-size:12px;border-radius:7px;border:1px solid var(--bd2);background:var(--surf);color:var(--tx2);cursor:pointer;font-family:inherit}
+
+/* When NOT in review mode: comments are visible (read-only) but actions are hidden */
+:not(.review-active) .comment-bubble-actions { display: none !important; }
+:not(.review-active) .comment-bubble-text { margin-bottom: 0; }
+/* In review mode: show full comment bubble with actions */
+.review-active .comment-bubble-actions { display: flex; }
+
+/* Collaborator sees comment in red but can't touch it */
+.field-wrap.has-comment .comment-bubble { display: block; }
+
+.review-mode-bar{background:#fef2f2;border:1px solid var(--comment-red-bd);border-radius:var(--r);padding:10px 16px;margin-bottom:1rem;font-size:13px;color:var(--comment-red);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.review-mode-bar b{font-weight:600}
+.review-toggle{padding:6px 14px;border-radius:20px;border:1.5px solid var(--comment-red);background:transparent;color:var(--comment-red);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
+.review-toggle.active{background:var(--comment-red);color:#fff}
+/* Comment icon on each field in review mode */
+.field-comment-btn{position:absolute;right:6px;top:6px;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--bd2);background:var(--surf);color:var(--tx3);font-size:13px;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:10;transition:all .15s;line-height:1}
+.review-active .field-comment-btn{display:flex}
+.field-wrap.has-comment .field-comment-btn{background:var(--comment-red);color:#fff;border-color:var(--comment-red)}
+.review-active input[type=text],.review-active textarea{padding-right:32px}
+
+/* TITLE ROW */
+.trow{display:grid;grid-template-columns:28px 1fr auto auto;gap:7px;align-items:start;margin-bottom:7px}
+.tnum{font-size:11px;color:var(--tx3);text-align:center;font-weight:600;padding-top:10px}
+.pin-sel{font-size:11px;padding:8px 6px;border-radius:7px;border:1px solid var(--bd2);background:var(--surf);color:var(--tx2);cursor:pointer;font-family:inherit;min-width:96px;height:36px}
+.pin-sel.pinned{background:var(--mag-l);color:var(--mag);border-color:var(--mag);font-weight:600}
+
+/* KW */
+.kw-area{display:flex;flex-wrap:wrap;gap:6px;padding:8px 10px;border:1px solid var(--bd2);border-radius:var(--r);min-height:46px;cursor:text;background:var(--surf);transition:border-color .15s}
+.kw-area:focus-within{border-color:var(--mag);box-shadow:0 0 0 3px rgba(26,86,219,.1)}
+.kw-tag{display:flex;align-items:center;gap:4px;padding:3px 9px;border-radius:12px;font-size:12px;font-weight:500}
+.kw-m{background:var(--mag-l);color:var(--mag)}.kw-n{background:var(--over-bg);color:var(--over)}
+.kw-tag button{background:none;border:none;cursor:pointer;font-size:15px;line-height:1;color:inherit;opacity:.55;padding:0 2px}
+.kw-input{border:none;outline:none;background:none;font-size:13px;min-width:120px;color:var(--tx);padding:3px 4px}
+
+/* GRIDS */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.ib{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+.ibt{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start}
+.ibt .char{margin-top:9px}
+
+/* EXTENSIONS */
+.ext-section{margin-bottom:1.25rem}
+.ext-section-title{font-size:12px;font-weight:600;color:var(--tx2);margin-bottom:.5rem;display:flex;align-items:center;gap:8px}
+.ext-required-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:#fee2e2;color:#b91c1c}
+.sl-row{display:grid;grid-template-columns:1fr 1fr auto auto;gap:8px;margin-bottom:7px;align-items:center}
+.sl-req-btn{font-size:11px;font-weight:600;padding:4px 9px;border-radius:8px;white-space:nowrap;cursor:pointer;border:none;font-family:inherit;transition:all .15s}
+.sl-req-btn.req{background:#fee2e2;color:#b91c1c}.sl-req-btn.opt{background:var(--surf2);color:var(--tx3)}
+.co-wrap{display:flex;flex-wrap:wrap;gap:7px}
+.co-item{display:flex;align-items:center;gap:4px;background:var(--surf2);border:1px solid var(--bd);border-radius:14px;padding:4px 10px}
+.co-item button{background:none;border:none;cursor:pointer;font-size:14px;opacity:.45;color:var(--tx);line-height:1}
+.co-input{border:none;outline:none;background:none;font-size:12px;padding:0;min-width:90px;color:var(--tx)}
+.ext-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ext-single-row{display:flex;gap:8px;margin-bottom:6px;align-items:center}
+
+/* BTNS */
+.btn{padding:9px 18px;border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--bd2);background:var(--surf);color:var(--tx);transition:all .15s;font-family:inherit}
+.btn:hover{background:var(--surf2)}
+.btn-ghost{background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);padding:6px 14px;font-size:12px}
+.btn-ghost:hover{background:rgba(255,255,255,.25)}
+.btn-white{background:#fff;color:var(--mag);border-color:#fff;padding:6px 14px;font-size:12px}
+.btn-white:hover{opacity:.92}
+.btn-primary{background:var(--mag);color:#fff;border-color:var(--mag)}
+.btn-primary:hover{opacity:.9}
+.add-btn{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:500;color:var(--mag);background:none;border:none;cursor:pointer;padding:5px 0;font-family:inherit}
+.del-btn{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:500;color:var(--over);background:none;border:none;cursor:pointer;padding:5px 0;font-family:inherit}
+
+/* PROGRESS */
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem}
+.prog-wrap{flex:1;max-width:340px}
+.prog-lbl{font-size:11px;color:var(--tx3);margin-bottom:4px}
+.prog-bar{height:5px;background:var(--surf2);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;background:var(--mag);transition:width .3s;border-radius:3px}
+
+/* AG TABS */
+.ag-tabs{display:flex;gap:7px;margin-bottom:1rem;flex-wrap:wrap}
+.ag-tab{padding:5px 14px;border-radius:14px;border:1px solid var(--bd2);font-size:12px;font-weight:500;cursor:pointer;background:transparent;color:var(--tx2);font-family:inherit;transition:all .15s}
+.ag-tab.active{background:var(--mag-l);color:var(--mag);border-color:var(--mag)}
+
+.hint{font-size:11px;color:var(--tx3);margin-top:3px}
+.camp-banner{background:var(--mag-l);border:1px solid #b3cafc;border-radius:var(--r);padding:10px 14px;margin-bottom:1rem;font-size:12px;color:#1a3a8a;line-height:1.7}
+.pmax-block{background:#f0f4ff;border:1px solid #c7d7f8;border-radius:var(--r);padding:1rem 1.25rem;margin-bottom:1rem}
+.pmax-lbl{font-size:11px;font-weight:700;color:var(--mag);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.75rem}
+
+/* STATUS */
+.status-steps{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap}
+.sstep{padding:7px 16px;border-radius:20px;border:1.5px solid var(--bd2);font-size:13px;font-weight:500;cursor:pointer;background:transparent;color:var(--tx2);font-family:inherit;transition:all .15s}
+.sstep:hover{background:var(--surf2)}
+.ss-draft{background:var(--surf2);color:var(--tx2);border-color:var(--bd2)}
+.ss-review{background:#fef3c7;color:#854f0b;border-color:#f0c040}
+.ss-approved{background:#eaf3de;color:#2d6a2d;border-color:#86efac}
+
+/* NOTES */
+.notes-panel{background:#fffbe6;border:1px solid #f0c040;border-radius:var(--r);padding:.85rem 1rem}
+.notes-lbl{font-size:11px;font-weight:600;color:#8a7000;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+.notes-panel textarea{background:transparent;border:none;font-size:13px;color:#5a4a00;padding:0}
+.notes-panel textarea:focus{outline:none;box-shadow:none;border:none}
+
+/* PREVIEW */
+.prev-hdr{background:var(--mag);color:#fff;padding:2rem 2rem 1.5rem;border-radius:var(--rl) var(--rl) 0 0}
+.prev-hdr h1{font-size:22px;font-weight:600;margin-bottom:4px}
+.prev-hdr p{font-size:13px;opacity:.8}
+.prev-body{background:var(--surf);border:.5px solid var(--bd);border-top:none;border-radius:0 0 var(--rl) var(--rl);padding:1.75rem}
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1.5rem}
+.stat-box{background:var(--surf2);border-radius:var(--r);padding:.85rem 1rem}
+.slbl{font-size:11px;color:var(--tx3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;font-weight:500}
+.sval{font-size:14px;font-weight:600}
+.ad-prev{border:1px solid var(--bd);border-radius:var(--r);padding:1rem 1.25rem;margin-bottom:1rem}
+.ad-url{font-size:12px;color:var(--ok);margin-bottom:4px;font-weight:500}
+.ad-titles{font-size:17px;font-weight:600;color:var(--mag);margin-bottom:5px;line-height:1.4}
+.ad-desc{font-size:13px;color:var(--tx2);line-height:1.55}
+.ad-ext{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;padding-top:10px;border-top:.5px solid var(--bd)}
+.ext-chip{font-size:11px;padding:3px 9px;border-radius:10px;border:1px solid var(--bd2);color:var(--tx2);background:var(--surf2)}
+.ext-chip.req-chip{border-color:#b91c1c;background:#fee2e2;color:#b91c1c;font-weight:600}
+.kw-pill{padding:4px 10px;border-radius:12px;font-size:12px;font-weight:500}
+.kp-m{background:var(--mag-l);color:var(--mag)}.kp-n{background:var(--over-bg);color:var(--over)}
+.badge-ag{display:inline-block;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:600;background:var(--mag-l);color:var(--mag);margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em}
+.warn-box{background:var(--over-bg);border-left:3px solid var(--over);padding:8px 12px;border-radius:0 var(--r) var(--r) 0;margin-bottom:10px;font-size:12px;color:var(--over)}
+.divider{border:none;border-top:.5px solid var(--bd);margin:1.5rem 0}
+.msg-block{background:var(--surf2);border-radius:var(--r);padding:.85rem 1rem;font-size:13px;color:var(--tx2);line-height:1.55;border-left:3px solid var(--mag);margin-top:.5rem}
+
+/* COMMENT COUNT BADGE */
+.comment-count{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:var(--comment-red);color:#fff;font-size:10px;font-weight:700;margin-left:6px}
+
+@media print{
+  .hdr,.tabs,.topbar,.btn,.add-btn,.del-btn,.ag-tabs,.review-mode-bar,.field-comment-btn{display:none!important}
+  .view{display:block!important}#view-editor{display:none!important}
+  .comment-bubble{display:none!important}
+}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-logo"><div class="hdr-dot"><span>M</span></div>Magnama</div>
+  <span class="hdr-sep">—</span>
+  <input class="hdr-client" id="hdrClient" placeholder="Nombre del cliente..." oninput="syncH(this.value)" autocomplete="off">
+  <div class="hdr-right">
+    <span style="font-size:12px;opacity:.75" id="saveStatus"></span>
+    <button class="btn-ghost btn" id="reviewModeHdrBtn" onclick="enterReviewMode()" style="border-color:rgba(255,255,255,.5)">💬 Modo revisión</button>
+    <button class="btn-ghost btn" onclick="saveProgress()">💾 Guardar</button>
+    <button class="btn-white btn" onclick="switchTab('preview')">Ver presentación →</button>
+  </div>
+</header>
+
+<div class="body">
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('editor')">✏ Estrategia</button>
+  <button class="tab" onclick="switchTab('preview')">👁 Vista cliente</button>
+</div>
+
+<!-- ══ EDITOR ══════════════════════════════════════════════════════ -->
+<div class="view active" id="view-editor">
+
+  <!-- REVIEW MODE BAR -->
+  <div class="review-mode-bar" id="reviewBar" style="display:none">
+    <div><b>Modo revisión activo</b> — hacé clic en 💬 al lado de cualquier campo para dejar un comentario en rojo. El colaborador no puede modificar ni borrar los comentarios.</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span id="commentCountBadge" style="font-size:12px;color:var(--comment-red)"></span>
+      <button class="review-toggle active" onclick="exitReviewMode()">🔒 Salir del modo revisión</button>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+    <div class="prog-wrap">
+      <div class="prog-lbl" id="progLbl">Completado: 0%</div>
+      <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+    </div>
+    <button class="btn btn-primary" onclick="switchTab('preview')">Ver presentación →</button>
+  </div>
+
+  <!-- DATOS GENERALES -->
+  <div class="card">
+    <div class="card-title">Datos generales</div>
+    <div class="g2">
+      <div class="frow">
+        <div class="flbl">Nombre del cliente</div>
+        <div class="field-wrap" data-fid="clientName">
+          <input type="text" id="clientName" placeholder="Ej: Okemo Mayorista" oninput="syncB(this.value);updateAll()">
+          <button class="field-comment-btn" onclick="toggleComment('clientName')">💬</button>
+          <div class="comment-bubble"><div class="comment-bubble-text" id="cb-text-clientName"></div>
+            <div class="comment-bubble-actions">
+              <input class="comment-bubble-input" id="cb-input-clientName" placeholder="Escribí el comentario..." onkeydown="if(event.key==='Enter')saveComment('clientName')">
+              <button class="btn-comment-save" onclick="saveComment('clientName')">Guardar</button>
+              <button class="btn-comment-clear" onclick="clearComment('clientName')">Quitar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="frow">
+        <div class="flbl">URL de destino</div>
+        <div class="field-wrap" data-fid="destURL">
+          <input type="text" id="destURL" placeholder="https://..." oninput="updateAll()">
+          <button class="field-comment-btn" onclick="toggleComment('destURL')">💬</button>
+          <div class="comment-bubble"><div class="comment-bubble-text" id="cb-text-destURL"></div>
+            <div class="comment-bubble-actions">
+              <input class="comment-bubble-input" id="cb-input-destURL" placeholder="Escribí el comentario..." onkeydown="if(event.key==='Enter')saveComment('destURL')">
+              <button class="btn-comment-save" onclick="saveComment('destURL')">Guardar</button>
+              <button class="btn-comment-clear" onclick="clearComment('destURL')">Quitar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="g3">
+      <div class="frow">
+        <div class="flbl">Objetivo de campaña</div>
+        <select id="campObjective" onchange="updateAll()">
+          <option value="">Seleccionar...</option>
+          <option>Maximizar conversiones</option><option>Maximizar clics</option>
+          <option>ROAS objetivo</option><option>CPA objetivo</option>
+        </select>
+      </div>
+      <div class="frow">
+        <div class="flbl">Tipo de campaña</div>
+        <select id="campType" onchange="onCampChange()">
+          <option value="">Seleccionar...</option>
+          <option value="Search">Search (Búsqueda)</option>
+          <option value="PMax">Performance Max (PMax)</option>
+        </select>
+      </div>
+      <div class="frow">
+        <div class="flbl">Zona geográfica</div>
+        <div class="field-wrap" data-fid="geoTarget">
+          <input type="text" id="geoTarget" placeholder="Ej: CABA + GBA" oninput="updateAll()">
+          <button class="field-comment-btn" onclick="toggleComment('geoTarget')">💬</button>
+          <div class="comment-bubble"><div class="comment-bubble-text" id="cb-text-geoTarget"></div>
+            <div class="comment-bubble-actions">
+              <input class="comment-bubble-input" id="cb-input-geoTarget" placeholder="Escribí el comentario..." onkeydown="if(event.key==='Enter')saveComment('geoTarget')">
+              <button class="btn-comment-save" onclick="saveComment('geoTarget')">Guardar</button>
+              <button class="btn-comment-clear" onclick="clearComment('geoTarget')">Quitar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="g2">
+      <div class="frow">
+        <div class="flbl">Segmentación demográfica</div>
+        <div class="field-wrap" data-fid="demog">
+          <input type="text" id="demog" placeholder="Ej: Todos los sexos / Pujar más por Hombres 30-60" oninput="updateAll()">
+          <button class="field-comment-btn" onclick="toggleComment('demog')">💬</button>
+          <div class="comment-bubble"><div class="comment-bubble-text" id="cb-text-demog"></div>
+            <div class="comment-bubble-actions">
+              <input class="comment-bubble-input" id="cb-input-demog" placeholder="Escribí el comentario..." onkeydown="if(event.key==='Enter')saveComment('demog')">
+              <button class="btn-comment-save" onclick="saveComment('demog')">Guardar</button>
+              <button class="btn-comment-clear" onclick="clearComment('demog')">Quitar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="frow">
+        <div class="flbl">Mensaje de WhatsApp sugerido</div>
+        <div class="field-wrap" data-fid="waMessage">
+          <input type="text" id="waMessage" placeholder="Hola, los vi en Google y quiero..." oninput="updateAll()">
+          <button class="field-comment-btn" onclick="toggleComment('waMessage')">💬</button>
+          <div class="comment-bubble"><div class="comment-bubble-text" id="cb-text-waMessage"></div>
+            <div class="comment-bubble-actions">
+              <input class="comment-bubble-input" id="cb-input-waMessage" placeholder="Escribí el comentario..." onkeydown="if(event.key==='Enter')saveComment('waMessage')">
+              <button class="btn-comment-save" onclick="saveComment('waMessage')">Guardar</button>
+              <button class="btn-comment-clear" onclick="clearComment('waMessage')">Quitar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GRUPOS -->
+  <div class="card">
+    <div class="card-title">Grupos de anuncios</div>
+    <div id="campBanner"></div>
+    <div class="ag-tabs" id="agTabs"></div>
+    <div id="agContent"></div>
+    <div style="display:flex;gap:14px;margin-top:8px">
+      <button class="add-btn" onclick="addAG()">+ Agregar grupo</button>
+      <button class="del-btn" onclick="removeAG()">— Eliminar grupo actual</button>
+    </div>
+  </div>
+
+  <!-- EXTENSIONES -->
+  <div class="card">
+    <div class="card-title">Extensiones de anuncio <span style="font-size:11px;font-weight:400;color:var(--tx3)">— todas opcionales</span></div>
+
+    <!-- SITELINKS -->
+    <div class="ext-section">
+      <div class="ext-section-title">🔗 Vínculos a sitio (Sitelinks)</div>
+      <div id="slList" style="margin-bottom:4px"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <button class="add-btn" onclick="addSL()">+ Agregar sitelink</button>
+        <div class="field-wrap" data-fid="ext_sitelinks" style="flex:1;min-height:0">
+          <div style="height:0;overflow:hidden"></div>
+          <button class="field-comment-btn" style="top:-2px;position:relative;display:none" onclick="toggleComment('ext_sitelinks')">💬</button>
+          <div class="comment-bubble">
+            <div class="comment-bubble-text" id="cb-text-ext_sitelinks"></div>
+            <div class="comment-bubble-actions">
+              <input class="comment-bubble-input" id="cb-input-ext_sitelinks" placeholder="Comentario sobre sitelinks..." onkeydown="if(event.key==='Enter')saveComment('ext_sitelinks')">
+              <button class="btn-comment-save" onclick="saveComment('ext_sitelinks')">Guardar</button>
+              <button class="btn-comment-clear" onclick="clearComment('ext_sitelinks')">Quitar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="hint">Título máx 25 car. · Descripción opcional · En modo revisión podés comentar sitelinks específicos</div>
+    </div>
+
+    <div class="ext-grid">
+      <!-- CALLOUTS -->
+      <div class="ext-section">
+        <div class="ext-section-title">📢 Textos destacados (Callouts)</div>
+        <div class="field-wrap" data-fid="ext_callouts">
+          <div class="co-wrap" id="coWrap"></div>
+          <button class="field-comment-btn" style="top:4px" onclick="toggleComment('ext_callouts')">💬</button>
+          <div class="comment-bubble">
+            <div class="comment-bubble-text" id="cb-text-ext_callouts"></div>
+            <div class="comment-bubble-actions">
+              <input class="comment-bubble-input" id="cb-input-ext_callouts" placeholder="Comentario sobre callouts..." onkeydown="if(event.key==='Enter')saveComment('ext_callouts')">
+              <button class="btn-comment-save" onclick="saveComment('ext_callouts')">Guardar</button>
+              <button class="btn-comment-clear" onclick="clearComment('ext_callouts')">Quitar</button>
+            </div>
+          </div>
+        </div>
+        <button class="add-btn" style="margin-top:8px" onclick="addCO()">+ Agregar callout</button>
+        <div class="hint" style="margin-top:5px">Máx 25 caracteres cada uno</div>
+      </div>
+
+      <!-- LLAMADAS -->
+      <div class="ext-section">
+        <div class="ext-section-title">📞 Extensión de llamada</div>
+        <div class="frow">
+          <div class="flbl">Número de teléfono</div>
+          <div class="field-wrap" data-fid="ext_phone">
+            <input type="text" id="extPhone" placeholder="Ej: +54 11 1234-5678" oninput="updateAll()">
+            <button class="field-comment-btn" onclick="toggleComment('ext_phone')">💬</button>
+            <div class="comment-bubble"><div class="comment-bubble-text" id="cb-text-ext_phone"></div>
+              <div class="comment-bubble-actions"><input class="comment-bubble-input" id="cb-input-ext_phone" placeholder="Comentario..." onkeydown="if(event.key==='Enter')saveComment('ext_phone')"><button class="btn-comment-save" onclick="saveComment('ext_phone')">Guardar</button><button class="btn-comment-clear" onclick="clearComment('ext_phone')">Quitar</button></div>
+            </div>
+          </div>
+        </div>
+        <div class="frow">
+          <div class="flbl">Horario de atención (opcional)</div>
+          <input type="text" id="extPhoneHours" placeholder="Ej: Lun–Vie 9–18hs">
+        </div>
+      </div>
+
+      <!-- FRAGMENTOS ESTRUCTURADOS -->
+      <div class="ext-section">
+        <div class="ext-section-title">📋 Fragmentos estructurados</div>
+        <div class="frow">
+          <div class="flbl">Tipo de encabezado</div>
+          <div class="field-wrap" data-fid="ext_snippet_header">
+            <select id="snippetHeader">
+              <option value="">Seleccionar...</option>
+              <option>Servicios</option><option>Productos</option><option>Marcas</option>
+              <option>Destinos</option><option>Cursos</option><option>Tipos</option>
+            </select>
+            <button class="field-comment-btn" onclick="toggleComment('ext_snippet_header')">💬</button>
+            <div class="comment-bubble"><div class="comment-bubble-text" id="cb-text-ext_snippet_header"></div>
+              <div class="comment-bubble-actions"><input class="comment-bubble-input" id="cb-input-ext_snippet_header" placeholder="Comentario..." onkeydown="if(event.key==='Enter')saveComment('ext_snippet_header')"><button class="btn-comment-save" onclick="saveComment('ext_snippet_header')">Guardar</button><button class="btn-comment-clear" onclick="clearComment('ext_snippet_header')">Quitar</button></div>
+            </div>
+          </div>
+        </div>
+        <div class="frow">
+          <div class="flbl">Valores <span style="font-size:11px;color:var(--tx3)">(Enter o coma)</span></div>
+          <div class="field-wrap" data-fid="ext_snippet_vals">
+            <div class="kw-area" id="snippetVals" onclick="document.getElementById('snippetIn').focus()">
+              <input class="kw-input" id="snippetIn" placeholder="Ej: Google Ads, Meta Ads..." onkeydown="handleSnippet(event)">
+            </div>
+            <button class="field-comment-btn" style="top:4px" onclick="toggleComment('ext_snippet_vals')">💬</button>
+            <div class="comment-bubble"><div class="comment-bubble-text" id="cb-text-ext_snippet_vals"></div>
+              <div class="comment-bubble-actions"><input class="comment-bubble-input" id="cb-input-ext_snippet_vals" placeholder="Comentario..." onkeydown="if(event.key==='Enter')saveComment('ext_snippet_vals')"><button class="btn-comment-save" onclick="saveComment('ext_snippet_vals')">Guardar</button><button class="btn-comment-clear" onclick="clearComment('ext_snippet_vals')">Quitar</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- UBICACIÓN -->
+      <div class="ext-section">
+        <div class="ext-section-title">📍 Extensión de ubicación</div>
+        <div class="frow">
+          <div class="flbl">Dirección</div>
+          <div class="field-wrap" data-fid="ext_address">
+            <input type="text" id="extAddress" placeholder="Ej: Av. Corrientes 1234, CABA">
+            <button class="field-comment-btn" onclick="toggleComment('ext_address')">💬</button>
+            <div class="comment-bubble"><div class="comment-bubble-text" id="cb-text-ext_address"></div>
+              <div class="comment-bubble-actions"><input class="comment-bubble-input" id="cb-input-ext_address" placeholder="Comentario..." onkeydown="if(event.key==='Enter')saveComment('ext_address')"><button class="btn-comment-save" onclick="saveComment('ext_address')">Guardar</button><button class="btn-comment-clear" onclick="clearComment('ext_address')">Quitar</button></div>
+            </div>
+          </div>
+        </div>
+        <div class="frow">
+          <div class="flbl">Ciudad / Zona</div>
+          <input type="text" id="extCity" placeholder="Ej: Buenos Aires">
+        </div>
+      </div>
+
+      <!-- PRECIO -->
+      <div class="ext-section">
+        <div class="ext-section-title">💲 Extensión de precio</div>
+        <div class="field-wrap" data-fid="ext_price" style="margin-bottom:4px">
+          <div id="priceList"></div>
+          <button class="field-comment-btn" style="top:4px" onclick="toggleComment('ext_price')">💬</button>
+          <div class="comment-bubble"><div class="comment-bubble-text" id="cb-text-ext_price"></div>
+            <div class="comment-bubble-actions"><input class="comment-bubble-input" id="cb-input-ext_price" placeholder="Comentario sobre precios..." onkeydown="if(event.key==='Enter')saveComment('ext_price')"><button class="btn-comment-save" onclick="saveComment('ext_price')">Guardar</button><button class="btn-comment-clear" onclick="clearComment('ext_price')">Quitar</button></div>
+          </div>
+        </div>
+        <button class="add-btn" onclick="addPrice()">+ Agregar ítem de precio</button>
+        <div class="hint" style="margin-top:5px">Hasta 8 ítems</div>
+      </div>
+
+      <!-- PROMOCIÓN -->
+      <div class="ext-section">
+        <div class="ext-section-title">🏷 Extensión de promoción</div>
+        <div class="frow">
+          <div class="flbl">Ocasión (opcional)</div>
+          <select id="promoOccasion">
+            <option value="">Sin ocasión especial</option>
+            <option>Cyber Monday</option><option>Hot Sale</option><option>Black Friday</option>
+            <option>Navidad</option><option>Año Nuevo</option><option>Día de la Madre</option>
+          </select>
+        </div>
+        <div class="g2">
+          <div class="frow">
+            <div class="flbl">Tipo de descuento</div>
+            <select id="promoType">
+              <option value="">Seleccionar...</option>
+              <option value="pct">Porcentaje de descuento</option>
+              <option value="amount">Descuento monetario</option>
+            </select>
+          </div>
+          <div class="frow">
+            <div class="flbl">Valor</div>
+            <div class="field-wrap" data-fid="ext_promo_val">
+              <input type="text" id="promoValue" placeholder="Ej: 20% o $500">
+              <button class="field-comment-btn" onclick="toggleComment('ext_promo_val')">💬</button>
+              <div class="comment-bubble"><div class="comment-bubble-text" id="cb-text-ext_promo_val"></div>
+                <div class="comment-bubble-actions"><input class="comment-bubble-input" id="cb-input-ext_promo_val" placeholder="Comentario..." onkeydown="if(event.key==='Enter')saveComment('ext_promo_val')"><button class="btn-comment-save" onclick="saveComment('ext_promo_val')">Guardar</button><button class="btn-comment-clear" onclick="clearComment('ext_promo_val')">Quitar</button></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="frow">
+          <div class="flbl">Producto / servicio promocionado</div>
+          <div class="field-wrap" data-fid="ext_promo_item">
+            <input type="text" id="promoItem" placeholder="Ej: Primer mes de gestión">
+            <button class="field-comment-btn" onclick="toggleComment('ext_promo_item')">💬</button>
+            <div class="comment-bubble"><div class="comment-bubble-text" id="cb-text-ext_promo_item"></div>
+              <div class="comment-bubble-actions"><input class="comment-bubble-input" id="cb-input-ext_promo_item" placeholder="Comentario..." onkeydown="if(event.key==='Enter')saveComment('ext_promo_item')"><button class="btn-comment-save" onclick="saveComment('ext_promo_item')">Guardar</button><button class="btn-comment-clear" onclick="clearComment('ext_promo_item')">Quitar</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTAS INTERNAS -->
+  <div class="card" style="border-color:#f0c040">
+    <div class="card-title" style="color:#8a7000">🔒 Notas internas — NO se muestran al cliente</div>
+    <div class="notes-panel">
+      <div class="notes-lbl">📝 Solo visible para el equipo Magnama</div>
+      <textarea id="internalNotes" placeholder="Observaciones, pendientes, contexto del cliente..." oninput="updateAll()"></textarea>
+    </div>
+  </div>
+</div><!-- /editor -->
+
+<!-- ══ VISTA CLIENTE ══════════════════════════════════════════════ -->
+<div class="view" id="view-preview">
+  <div style="margin-bottom:1.25rem;display:flex;justify-content:space-between">
+    <button class="btn" onclick="switchTab('editor')">← Editar</button>
+    <button class="btn" onclick="window.print()">🖨 Imprimir / PDF</button>
+  </div>
+  <div id="previewContent"></div>
+</div>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────
+const CFG={
+  Search:{banner:'🔍 <b>Search:</b> 15 títulos (máx 30 car.) · 4 descripciones (máx 90 car.).',nTit:15,titMax:30,nDesc:4,descMax:90,nLong:0,hasImg:false,slRequired:false,titHint:'Elegí si algún título va fijado en posición 1°, 2° o 3°. Google rota el resto.',descHint:'Máx 90 car. Beneficio principal + llamada a la acción.'},
+  PMax:{banner:'⚡ <b>PMax:</b> 15 títulos (máx 30 car.) · 5 títulos largos (máx 90 car.) · 4 descripciones · hasta 20 imágenes · 5 logos · 5 videos opcionales.',nTit:15,titMax:30,nDesc:4,descMax:90,nLong:5,hasImg:true,slRequired:true,titHint:'Elegí si algún título va fijado en posición 1°, 2° o 3°. Google combina el resto.',descHint:'Máx 90 car. Variá los enfoques entre descripciones.'}
+};
+function cfg(){return CFG[document.getElementById('campType')?.value]||null}
+
+// ── STATE ─────────────────────────────────────────────────────────
+let AGs=[{name:'',titles:Array(15).fill(''),pins:Array(15).fill('none'),longTitles:Array(5).fill(''),descs:Array(4).fill(''),keywords:[],negKeywords:[],assetsLink:'',titleComments:Array(15).fill(''),descComments:Array(4).fill('')}];
+let SLs=[{title:'',desc:'',required:false}];
+let COs=[''];
+let snippetVals=[];
+let priceItems=[];
+let activeAG=0;
+let status='draft';
+let fieldComments={};
+let reviewMode=false;
+
+// ── REVIEW MODE ───────────────────────────────────────────────────
+const REVIEW_PASSWORD = 'Magnama1423';
+
+function enterReviewMode() {
+  const pwd = prompt('Ingresá la clave para activar el modo revisión:');
+  if (pwd === null) return;
+  if (pwd !== REVIEW_PASSWORD) {
+    alert('Clave incorrecta.');
+    return;
+  }
+  reviewMode = true;
+  document.getElementById('view-editor').classList.add('review-active');
+  document.getElementById('reviewBar').style.display = 'flex';
+  document.getElementById('reviewModeHdrBtn').textContent = '🔒 En revisión';
+  document.getElementById('reviewModeHdrBtn').style.background = 'rgba(220,38,38,.25)';
+  document.getElementById('reviewModeHdrBtn').onclick = exitReviewMode;
+  updateCommentCount();
+}
+
+function exitReviewMode() {
+  const pwd = prompt('Ingresá la clave para salir del modo revisión:');
+  if (pwd === null) return;
+  if (pwd !== REVIEW_PASSWORD) {
+    alert('Clave incorrecta.');
+    return;
+  }
+  reviewMode = false;
+  document.getElementById('view-editor').classList.remove('review-active');
+  document.getElementById('reviewBar').style.display = 'none';
+  document.getElementById('reviewModeHdrBtn').textContent = '💬 Modo revisión';
+  document.getElementById('reviewModeHdrBtn').style.background = '';
+  document.getElementById('reviewModeHdrBtn').onclick = enterReviewMode;
+}
+function updateCommentCount(){
+  const total=Object.values(fieldComments).filter(v=>v&&v.trim()).length;
+  const el=document.getElementById('commentCountBadge');
+  el.textContent=total>0?`${total} comentario${total>1?'s':''} activo${total>1?'s':''}`:'';
+  // update tab badge
+  const tab=document.querySelector('.tab:first-child');
+  const existing=tab.querySelector('.comment-count');
+  if(existing)existing.remove();
+  if(total>0){const b=document.createElement('span');b.className='comment-count';b.textContent=total;tab.appendChild(b)}
+}
+
+// ── FIELD COMMENTS ────────────────────────────────────────────────
+function toggleComment(fid){
+  const wrap=document.querySelector(`[data-fid="${fid}"]`);
+  if(!wrap)return;
+  const hasComment=wrap.classList.contains('has-comment');
+  if(!hasComment){
+    wrap.classList.add('has-comment');
+    const inp=document.getElementById(`cb-input-${fid}`);
+    if(inp){const existing=fieldComments[fid]||'';inp.value=existing;setTimeout(()=>inp.focus(),50)}
+    const textEl=document.getElementById(`cb-text-${fid}`);
+    if(textEl&&fieldComments[fid])textEl.textContent=fieldComments[fid];
+  } else {
+    const inp=document.getElementById(`cb-input-${fid}`);
+    if(inp)setTimeout(()=>inp.focus(),50);
+  }
+}
+function saveComment(fid){
+  const inp=document.getElementById(`cb-input-${fid}`);
+  if(!inp)return;
+  const val=inp.value.trim();
+  fieldComments[fid]=val;
+  const textEl=document.getElementById(`cb-text-${fid}`);
+  if(textEl)textEl.textContent=val;
+  const wrap=document.querySelector(`[data-fid="${fid}"]`);
+  if(wrap)wrap.classList.toggle('has-comment',!!val);
+  updateCommentCount();
+}
+function clearComment(fid){
+  fieldComments[fid]='';
+  const wrap=document.querySelector(`[data-fid="${fid}"]`);
+  if(wrap)wrap.classList.remove('has-comment');
+  const inp=document.getElementById(`cb-input-${fid}`);
+  if(inp)inp.value='';
+  const textEl=document.getElementById(`cb-text-${fid}`);
+  if(textEl)textEl.textContent='';
+  updateCommentCount();
+}
+// Title/desc inline comments (dynamic fields)
+function toggleTitleComment(idx){
+  const fid=`title_${activeAG}_${idx}`;
+  const ag=AGs[activeAG];
+  if(!ag.titleComments)ag.titleComments=Array(15).fill('');
+  const wrap=document.querySelector(`[data-fid="${fid}"]`);
+  if(!wrap)return;
+  wrap.classList.toggle('has-comment',true);
+  const inp=document.getElementById(`cb-input-${fid}`);
+  if(inp){inp.value=ag.titleComments[idx]||'';setTimeout(()=>inp.focus(),50)}
+  const textEl=document.getElementById(`cb-text-${fid}`);
+  if(textEl)textEl.textContent=ag.titleComments[idx]||'';
+}
+function saveTitleComment(idx){
+  const fid=`title_${activeAG}_${idx}`;
+  const inp=document.getElementById(`cb-input-${fid}`);if(!inp)return;
+  const val=inp.value.trim();
+  if(!AGs[activeAG].titleComments)AGs[activeAG].titleComments=Array(15).fill('');
+  AGs[activeAG].titleComments[idx]=val;
+  const textEl=document.getElementById(`cb-text-${fid}`);if(textEl)textEl.textContent=val;
+  const wrap=document.querySelector(`[data-fid="${fid}"]`);if(wrap)wrap.classList.toggle('has-comment',!!val);
+  updateCommentCount();
+}
+function clearTitleComment(idx){
+  const fid=`title_${activeAG}_${idx}`;
+  if(AGs[activeAG].titleComments)AGs[activeAG].titleComments[idx]='';
+  const wrap=document.querySelector(`[data-fid="${fid}"]`);if(wrap)wrap.classList.remove('has-comment');
+  const inp=document.getElementById(`cb-input-${fid}`);if(inp)inp.value='';
+  const textEl=document.getElementById(`cb-text-${fid}`);if(textEl)textEl.textContent='';
+  updateCommentCount();
+}
+function toggleDescComment(idx){
+  const fid=`desc_${activeAG}_${idx}`;
+  const ag=AGs[activeAG];
+  if(!ag.descComments)ag.descComments=Array(4).fill('');
+  const wrap=document.querySelector(`[data-fid="${fid}"]`);if(!wrap)return;
+  wrap.classList.toggle('has-comment',true);
+  const inp=document.getElementById(`cb-input-${fid}`);
+  if(inp){inp.value=ag.descComments[idx]||'';setTimeout(()=>inp.focus(),50)}
+  const textEl=document.getElementById(`cb-text-${fid}`);
+  if(textEl)textEl.textContent=ag.descComments[idx]||'';
+}
+function saveDescComment(idx){
+  const fid=`desc_${activeAG}_${idx}`;
+  const inp=document.getElementById(`cb-input-${fid}`);if(!inp)return;
+  const val=inp.value.trim();
+  if(!AGs[activeAG].descComments)AGs[activeAG].descComments=Array(4).fill('');
+  AGs[activeAG].descComments[idx]=val;
+  const textEl=document.getElementById(`cb-text-${fid}`);if(textEl)textEl.textContent=val;
+  const wrap=document.querySelector(`[data-fid="${fid}"]`);if(wrap)wrap.classList.toggle('has-comment',!!val);
+  updateCommentCount();
+}
+function clearDescComment(idx){
+  const fid=`desc_${activeAG}_${idx}`;
+  if(AGs[activeAG].descComments)AGs[activeAG].descComments[idx]='';
+  const wrap=document.querySelector(`[data-fid="${fid}"]`);if(wrap)wrap.classList.remove('has-comment');
+  const inp=document.getElementById(`cb-input-${fid}`);if(inp)inp.value='';
+  const textEl=document.getElementById(`cb-text-${fid}`);if(textEl)textEl.textContent='';
+  updateCommentCount();
+}
+
+// ── CAMP CHANGE ───────────────────────────────────────────────────
+function onCampChange(){
+  const c=cfg();
+  document.getElementById('campBanner').innerHTML=c?`<div class="camp-banner">${c.banner}</div>`:'';
+  if(c)AGs.forEach(ag=>{
+    while(ag.titles.length<c.nTit)ag.titles.push('');ag.titles=ag.titles.slice(0,c.nTit);
+    while(ag.pins.length<c.nTit)ag.pins.push('none');ag.pins=ag.pins.slice(0,c.nTit);
+    while(ag.descs.length<c.nDesc)ag.descs.push('');ag.descs=ag.descs.slice(0,c.nDesc);
+    if(!ag.longTitles)ag.longTitles=[];
+    while(ag.longTitles.length<c.nLong)ag.longTitles.push('');ag.longTitles=ag.longTitles.slice(0,c.nLong);
+    if(!ag.titleComments)ag.titleComments=Array(c.nTit).fill('');
+    if(!ag.descComments)ag.descComments=Array(c.nDesc).fill('');
+  });
+  renderAGs();updateAll();
+}
+
+// ── CHAR BADGE ────────────────────────────────────────────────────
+function bdg(len,max){const cl=len===0?'c-e':len<=max?'c-ok':'c-ov';return`<span class="char ${cl}">${len}/${max}</span>`}
+function bcl(len,max){return len===0?'c-e':len<=max?'c-ok':'c-ov'}
+
+// ── RENDER AGs ────────────────────────────────────────────────────
+function renderAGs(){
+  document.getElementById('agTabs').innerHTML=AGs.map((ag,i)=>
+    `<button class="ag-tab${i===activeAG?' active':''}" onclick="setAG(${i})">${esc(ag.name||'Grupo '+(i+1))}</button>`
+  ).join('');
+  const c=cfg();const ag=AGs[activeAG];const el=document.getElementById('agContent');
+  if(!c){el.innerHTML=`<p style="color:var(--tx3);font-size:13px;padding:.75rem 0">Seleccioná el tipo de campaña para ver los campos.</p>`;return}
+
+  function commentWrap(fid,hasC,inner){
+    const comment=fid.startsWith('title_')?AGs[activeAG].titleComments?.[parseInt(fid.split('_')[2])]||'':fid.startsWith('desc_')?AGs[activeAG].descComments?.[parseInt(fid.split('_')[2])]||'':'';
+    const active=hasC&&comment;
+    return`<div class="field-wrap${active?' has-comment':''}" data-fid="${fid}">${inner}
+      <button class="field-comment-btn" onclick="${fid.startsWith('title_')?'toggleTitleComment('+parseInt(fid.split('_')[2])+')':fid.startsWith('desc_')?'toggleDescComment('+parseInt(fid.split('_')[2])+')':'toggleComment(\''+fid+'\')'}">💬</button>
+      <div class="comment-bubble">
+        <div class="comment-bubble-text" id="cb-text-${fid}">${esc(comment)}</div>
+        <div class="comment-bubble-actions">
+          <input class="comment-bubble-input" id="cb-input-${fid}" value="${esc(comment)}" placeholder="Escribí el comentario..."
+            onkeydown="if(event.key==='Enter'){${fid.startsWith('title_')?'saveTitleComment('+parseInt(fid.split('_')[2])+')':fid.startsWith('desc_')?'saveDescComment('+parseInt(fid.split('_')[2])+')':'saveComment(\''+fid+'\')'}}"  >
+          <button class="btn-comment-save" onclick="${fid.startsWith('title_')?'saveTitleComment('+parseInt(fid.split('_')[2])+')':fid.startsWith('desc_')?'saveDescComment('+parseInt(fid.split('_')[2])+')':'saveComment(\''+fid+'\')'}">Guardar</button>
+          <button class="btn-comment-clear" onclick="${fid.startsWith('title_')?'clearTitleComment('+parseInt(fid.split('_')[2])+')':fid.startsWith('desc_')?'clearDescComment('+parseInt(fid.split('_')[2])+')':'clearComment(\''+fid+'\')'}">Quitar</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  const titlesHTML=ag.titles.map((t,i)=>{
+    const len=t.length;const pin=ag.pins[i]||'none';const isPinned=pin!=='none';
+    const tc=(ag.titleComments||[])[i]||'';
+    return`<div class="trow">
+      <span class="tnum">${i+1}</span>
+      ${commentWrap(`title_${activeAG}_${i}`,true,`<input type="text" maxlength="35" value="${esc(t)}" placeholder="Título ${i+1}" oninput="liveTit(${i},this)">`)}
+      <select class="pin-sel${isPinned?' pinned':''}" onchange="livePin(${i},this)">
+        <option value="none"${pin==='none'?' selected':''}>Sin fijar</option>
+        <option value="1"${pin==='1'?' selected':''}>📌 Pos. 1</option>
+        <option value="2"${pin==='2'?' selected':''}>📌 Pos. 2</option>
+        <option value="3"${pin==='3'?' selected':''}>📌 Pos. 3</option>
+      </select>
+      ${bdg(len,c.titMax)}
+    </div>`;
+  }).join('');
+
+  let longHTML='';
+  if(c.nLong>0){longHTML=`<div class="pmax-block" style="margin-bottom:1.5rem"><div class="pmax-lbl">⚡ Títulos largos — solo PMax (máx 90 car.)</div>
+    ${(ag.longTitles||[]).map((lt,i)=>{const len=lt.length;return`<div class="ib" style="margin-bottom:8px">
+      <input type="text" maxlength="95" value="${esc(lt)}" placeholder="Título largo ${i+1}" oninput="liveLong(${i},this)">
+      ${bdg(len,90)}</div>`}).join('')}</div>`}
+
+  const descsHTML=ag.descs.map((d,i)=>{const len=d.length;
+    const dc=(ag.descComments||[])[i]||'';
+    return`<div style="margin-bottom:10px">
+      <div class="ibt">
+        ${commentWrap(`desc_${activeAG}_${i}`,true,`<textarea maxlength="95" placeholder="${i===0?'Descripción 1 — beneficio principal + CTA':'Descripción '+(i+1)+' — propuesta diferencial'}" oninput="liveDesc(${i},this)">${esc(d)}</textarea>`)}
+        ${bdg(len,c.descMax)}
+      </div></div>`}).join('');
+
+  let imgHTML='';
+  if(c.hasImg)imgHTML=`<div class="pmax-block" style="margin-top:1rem"><div class="pmax-lbl">🖼 Recursos visuales — solo PMax</div>
+    <div style="font-size:12px;color:var(--tx2);line-height:1.9;margin-bottom:10px">
+      <div>🖼 <b>Imágenes:</b> hasta 20 — Landscape 1200×628 · Square 1200×1200 · Portrait 960×1200</div>
+      <div>🔷 <b>Logos:</b> hasta 5 — Square 1200×1200 · Landscape 1200×300</div>
+      <div>🎬 <b>Videos:</b> hasta 5 (opcionales) — YouTube · mín 10 seg</div>
+    </div>
+    <div class="flbl" style="margin-bottom:4px">Link a carpeta de recursos</div>
+    <input type="text" value="${esc(ag.assetsLink||'')}" placeholder="https://drive.google.com/..." oninput="AGs[activeAG].assetsLink=this.value"></div>`;
+
+  el.innerHTML=`<div class="g2" style="margin-bottom:1rem"><div>
+    <div class="flbl">Nombre del grupo</div>
+    <input type="text" value="${esc(ag.name)}" placeholder="Ej: Búsqueda Genérica" oninput="updAGName(this.value)" style="margin-top:4px">
+  </div></div>
+  <div class="g2" style="margin-bottom:1.5rem">
+    <div>
+      <div class="flbl" style="margin-bottom:6px">Palabras clave <span style="font-size:11px;color:var(--tx3)">(Enter o coma)</span></div>
+      <div class="field-wrap${(ag.kwComments?.keywords)?' has-comment':''}" data-fid="kw_${activeAG}_keywords">
+        <div class="kw-area" id="kwIn" onclick="document.getElementById('kwIn').querySelector('.kw-input').focus()">${kwTags(ag.keywords||[],'m')}
+          <input class="kw-input" placeholder='"agencia de marketing"' onkeydown="handleKW(event,'keywords')">
+        </div>
+        <button class="field-comment-btn" onclick="toggleKWComment('keywords')">💬</button>
+        <div class="comment-bubble">
+          <div class="comment-bubble-text" id="cb-text-kw_${activeAG}_keywords">${esc((ag.kwComments?.keywords)||'')}</div>
+          <div class="comment-bubble-actions">
+            <input class="comment-bubble-input" id="cb-input-kw_${activeAG}_keywords" value="${esc((ag.kwComments?.keywords)||'')}" placeholder="Comentario sobre keywords..." onkeydown="if(event.key==='Enter')saveKWComment('keywords')">
+            <button class="btn-comment-save" onclick="saveKWComment('keywords')">Guardar</button>
+            <button class="btn-comment-clear" onclick="clearKWComment('keywords')">Quitar</button>
+          </div>
+        </div>
+      </div>
+      <div class="hint">Comillas = exact match · sin comillas = broad</div>
+    </div>
+    <div>
+      <div class="flbl" style="margin-bottom:6px">Palabras clave negativas</div>
+      <div class="field-wrap${(ag.kwComments?.negKeywords)?' has-comment':''}" data-fid="kw_${activeAG}_negKeywords">
+        <div class="kw-area" id="kwNeg" onclick="document.getElementById('kwNeg').querySelector('.kw-input').focus()">${kwTags(ag.negKeywords||[],'n')}
+          <input class="kw-input" placeholder="gratis, empleo..." onkeydown="handleKW(event,'negKeywords')">
+        </div>
+        <button class="field-comment-btn" onclick="toggleKWComment('negKeywords')">💬</button>
+        <div class="comment-bubble">
+          <div class="comment-bubble-text" id="cb-text-kw_${activeAG}_negKeywords">${esc((ag.kwComments?.negKeywords)||'')}</div>
+          <div class="comment-bubble-actions">
+            <input class="comment-bubble-input" id="cb-input-kw_${activeAG}_negKeywords" value="${esc((ag.kwComments?.negKeywords)||'')}" placeholder="Comentario sobre negativas..." onkeydown="if(event.key==='Enter')saveKWComment('negKeywords')">
+            <button class="btn-comment-save" onclick="saveKWComment('negKeywords')">Guardar</button>
+            <button class="btn-comment-clear" onclick="clearKWComment('negKeywords')">Quitar</button>
+          </div>
+        </div>
+      </div>
+      <div class="hint">NO deben disparar el anuncio</div>
+    </div>
+  </div>
+  <div class="flbl" style="margin-bottom:4px">Títulos <span style="font-size:11px;color:var(--tx3)">(${c.nTit} · máx ${c.titMax} car.)</span></div>
+  <div class="hint" style="margin-bottom:10px">${c.titHint}</div>
+  <div style="margin-bottom:1.5rem">${titlesHTML}</div>
+  ${longHTML}
+  <div class="flbl" style="margin-bottom:4px">Descripciones <span style="font-size:11px;color:var(--tx3)">(${c.nDesc} · máx ${c.descMax} car.)</span></div>
+  <div class="hint" style="margin-bottom:10px">${c.descHint}</div>
+  ${descsHTML}${imgHTML}`;
+
+  // Restore comment states for titles and descs
+  if(reviewMode){
+    (ag.titleComments||[]).forEach((tc,i)=>{if(tc){const w=document.querySelector(`[data-fid="title_${activeAG}_${i}"]`);if(w)w.classList.add('has-comment')}});
+    (ag.descComments||[]).forEach((dc,i)=>{if(dc){const w=document.querySelector(`[data-fid="desc_${activeAG}_${i}"]`);if(w)w.classList.add('has-comment')}});
+  }
+}
+
+// ── LIVE UPDATES ─────────────────────────────────────────────────
+function liveTit(i,inp){AGs[activeAG].titles[i]=inp.value;const max=cfg()?.titMax||30;const len=inp.value.length;const b=inp.closest('.trow')?.querySelector('.char');if(b){b.className=`char ${bcl(len,max)}`;b.textContent=`${len}/${max}`}updateProgress()}
+function livePin(i,sel){AGs[activeAG].pins[i]=sel.value;sel.className='pin-sel'+(sel.value!=='none'?' pinned':'')}
+function liveLong(i,inp){if(!AGs[activeAG].longTitles)AGs[activeAG].longTitles=[];AGs[activeAG].longTitles[i]=inp.value;const len=inp.value.length;const b=inp.closest('.ib')?.querySelector('.char');if(b){b.className=`char ${bcl(len,90)}`;b.textContent=`${len}/90`}updateProgress()}
+function liveDesc(i,ta){AGs[activeAG].descs[i]=ta.value;const max=cfg()?.descMax||90;const len=ta.value.length;const b=ta.closest('.ibt')?.querySelector('.char');if(b){b.className=`char ${bcl(len,max)}`;b.textContent=`${len}/${max}`}updateProgress()}
+function updAGName(v){AGs[activeAG].name=v;const t=document.querySelectorAll('.ag-tab')[activeAG];if(t)t.textContent=v||'Grupo '+(activeAG+1)}
+function setAG(i){activeAG=i;renderAGs();if(reviewMode)document.getElementById('view-editor').classList.add('review-active')}
+function addAG(){AGs.push({name:'',titles:Array(15).fill(''),pins:Array(15).fill('none'),longTitles:Array(5).fill(''),descs:Array(4).fill(''),keywords:[],negKeywords:[],assetsLink:'',titleComments:Array(15).fill(''),descComments:Array(4).fill('')});activeAG=AGs.length-1;renderAGs()}
+function removeAG(){if(AGs.length<=1)return;AGs.splice(activeAG,1);activeAG=Math.min(activeAG,AGs.length-1);renderAGs()}
+
+// ── KEYWORDS ─────────────────────────────────────────────────────
+function kwTags(kws,type){return kws.map((k,i)=>`<span class="kw-tag kw-${type}">${esc(k)}<button onclick="rmKW('${type==='m'?'keywords':'negKeywords'}',${i})">×</button></span>`).join('')}
+
+// Redraw only the tag chips inside a kw-area WITHOUT destroying the input
+function refreshKWArea(areaId, kws, type, field) {
+  const area = document.getElementById(areaId);
+  if (!area) return;
+  // Remove existing tag spans only
+  area.querySelectorAll('.kw-tag').forEach(el => el.remove());
+  const inp = area.querySelector('.kw-input');
+  if (!inp) return;
+  const frag = document.createDocumentFragment();
+  kws.forEach((k, i) => {
+    const span = document.createElement('span');
+    span.className = `kw-tag kw-${type}`;
+    span.innerHTML = `${esc(k)}<button onclick="rmKW('${field}',${i})">×</button>`;
+    frag.appendChild(span);
+  });
+  area.insertBefore(frag, inp);
+  refreshKWCommentArea(field);
+}
+
+function handleKW(e, field) {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    const v = e.target.value.trim().replace(/,$/, '');
+    if (!v) return;
+    if (!AGs[activeAG][field]) AGs[activeAG][field] = [];
+    AGs[activeAG][field].push(v);
+    e.target.value = '';
+    const isNeg = field === 'negKeywords';
+    refreshKWArea(isNeg ? 'kwNeg' : 'kwIn', AGs[activeAG][field], isNeg ? 'n' : 'm', field);
+    // keep focus on the input
+    setTimeout(() => e.target.focus(), 0);
+    updateAll();
+  }
+}
+function rmKW(field, idx) {
+  AGs[activeAG][field].splice(idx, 1);
+  const isNeg = field === 'negKeywords';
+  refreshKWArea(isNeg ? 'kwNeg' : 'kwIn', AGs[activeAG][field], isNeg ? 'n' : 'm', field);
+  updateAll();
+}
+
+// KW comment state per field per AG
+function refreshKWCommentArea(field) {
+  const fid = `kw_${activeAG}_${field}`;
+  const wrap = document.querySelector(`[data-fid="${fid}"]`);
+  if (!wrap) return;
+  const comment = (AGs[activeAG].kwComments||{})[field]||'';
+  wrap.classList.toggle('has-comment', !!comment);
+  const t = document.getElementById(`cb-text-${fid}`); if(t) t.textContent = comment;
+  const i = document.getElementById(`cb-input-${fid}`); if(i) i.value = comment;
+}
+function toggleKWComment(field) {
+  const fid = `kw_${activeAG}_${field}`;
+  const wrap = document.querySelector(`[data-fid="${fid}"]`);
+  if (!wrap) return;
+  wrap.classList.add('has-comment');
+  const inp = document.getElementById(`cb-input-${fid}`);
+  if (inp) { inp.value = (AGs[activeAG].kwComments||{})[field]||''; setTimeout(()=>inp.focus(),50); }
+  const t = document.getElementById(`cb-text-${fid}`);
+  if (t) t.textContent = (AGs[activeAG].kwComments||{})[field]||'';
+}
+function saveKWComment(field) {
+  const fid = `kw_${activeAG}_${field}`;
+  const inp = document.getElementById(`cb-input-${fid}`); if(!inp) return;
+  const val = inp.value.trim();
+  if (!AGs[activeAG].kwComments) AGs[activeAG].kwComments = {};
+  AGs[activeAG].kwComments[field] = val;
+  const t = document.getElementById(`cb-text-${fid}`); if(t) t.textContent = val;
+  const wrap = document.querySelector(`[data-fid="${fid}"]`); if(wrap) wrap.classList.toggle('has-comment', !!val);
+  updateCommentCount();
+}
+function clearKWComment(field) {
+  if (AGs[activeAG].kwComments) AGs[activeAG].kwComments[field] = '';
+  const fid = `kw_${activeAG}_${field}`;
+  const wrap = document.querySelector(`[data-fid="${fid}"]`); if(wrap) wrap.classList.remove('has-comment');
+  const inp = document.getElementById(`cb-input-${fid}`); if(inp) inp.value = '';
+  const t = document.getElementById(`cb-text-${fid}`); if(t) t.textContent = '';
+  updateCommentCount();
+}
+
+// ── SITELINKS ────────────────────────────────────────────────────
+function addSL(){SLs.push({title:'',desc:'',required:false});renderSLs()}
+function renderSLs(){document.getElementById('slList').innerHTML=SLs.map((s,i)=>`
+  <div style="background:var(--surf2);border-radius:var(--r);padding:8px 10px;margin-bottom:8px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:6px;align-items:center">
+      <input type="text" value="${esc(s.title)}" placeholder="Título (máx 25 car.)" maxlength="25" oninput="SLs[${i}].title=this.value;updateAll()" style="font-size:12px">
+      <input type="text" value="${esc(s.desc)}" placeholder="Descripción (opcional)" oninput="SLs[${i}].desc=this.value" style="font-size:12px">
+      <button class="del-btn" style="font-size:17px;padding:0 4px" onclick="SLs.splice(${i},1);renderSLs()">×</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <span style="font-size:11px;color:var(--tx3);white-space:nowrap">🔗 URL:</span>
+      <input type="text" value="${esc(s.url||'')}" placeholder="https://cliente.com/pagina" oninput="SLs[${i}].url=this.value" style="font-size:12px">
+    </div>
+  </div>`).join('')}
+
+// ── CALLOUTS ────────────────────────────────────────────────────
+function addCO(){COs.push('');renderCOs()}
+function renderCOs(){document.getElementById('coWrap').innerHTML=COs.map((c,i)=>`
+  <div class="co-item"><input class="co-input" value="${esc(c)}" placeholder="Texto destacado..." maxlength="26" oninput="COs[${i}]=this.value">
+  <button onclick="COs.splice(${i},1);renderCOs()">×</button></div>`).join('')}
+
+// ── SNIPPETS ────────────────────────────────────────────────────
+function handleSnippet(e){
+  if(e.key==='Enter'||e.key===','){
+    e.preventDefault();
+    const v=e.target.value.trim().replace(/,$/,'');
+    if(!v)return;
+    snippetVals.push(v);
+    e.target.value='';
+    refreshSnippetTags();
+    setTimeout(()=>e.target.focus(),0);
+  }
+}
+function refreshSnippetTags(){
+  const area=document.getElementById('snippetVals');
+  const inp=document.getElementById('snippetIn');
+  if(!area||!inp)return;
+  area.querySelectorAll('.kw-tag').forEach(el=>el.remove());
+  const frag=document.createDocumentFragment();
+  snippetVals.forEach((v,i)=>{
+    const span=document.createElement('span');
+    span.className='kw-tag kw-m';
+    span.innerHTML=`${esc(v)}<button onclick="snippetVals.splice(${i},1);refreshSnippetTags()">×</button>`;
+    frag.appendChild(span);
+  });
+  area.insertBefore(frag,inp);
+}
+function renderSnippets(){
+  const area=document.getElementById('snippetVals');
+  const inp=document.getElementById('snippetIn');
+  if(!area||!inp)return;
+  area.innerHTML='';
+  snippetVals.forEach((v,i)=>{
+    const span=document.createElement('span');
+    span.className='kw-tag kw-m';
+    span.innerHTML=`${esc(v)}<button onclick="snippetVals.splice(${i},1);refreshSnippetTags()">×</button>`;
+    area.appendChild(span);
+  });
+  area.appendChild(inp);
+}
+
+// ── PRICE ───────────────────────────────────────────────────────
+function addPrice(){priceItems.push({title:'',price:'',desc:''});renderPrice()}
+function renderPrice(){document.getElementById('priceList').innerHTML=priceItems.map((p,i)=>`
+  <div style="background:var(--surf2);border-radius:var(--r);padding:8px 10px;margin-bottom:6px;display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center">
+    <input type="text" value="${esc(p.title)}" placeholder="Nombre del producto/servicio" oninput="priceItems[${i}].title=this.value" style="font-size:12px">
+    <input type="text" value="${esc(p.price)}" placeholder="Ej: $15.000 / mes" oninput="priceItems[${i}].price=this.value" style="font-size:12px">
+    <button class="del-btn" style="font-size:16px;padding:0 4px" onclick="priceItems.splice(${i},1);renderPrice()">×</button>
+  </div>`).join('')}
+
+// ── PROGRESS ────────────────────────────────────────────────────
+function updateProgress(){
+  const c=cfg();let filled=0,total=0;
+  ['clientName','destURL','geoTarget','campObjective','campType'].forEach(id=>{total++;const el=document.getElementById(id);if(el&&el.value.trim())filled++});
+  if(c){const ag=AGs[activeAG];ag.titles.forEach(t=>{total++;if(t.trim())filled++});ag.descs.forEach(d=>{total++;if(d.trim())filled++});if(c.nLong>0&&ag.longTitles)ag.longTitles.forEach(lt=>{total++;if(lt.trim())filled++})}
+  const pct=total>0?Math.round(filled/total*100):0;
+  document.getElementById('progFill').style.width=pct+'%';
+  document.getElementById('progLbl').textContent=`Completado: ${pct}%`;
+}
+function updateAll(){updateProgress()}
+
+// ── ESC ──────────────────────────────────────────────────────────
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+// ── NAME SYNC ────────────────────────────────────────────────────
+function syncH(v){const el=document.getElementById('clientName');if(el)el.value=v;updateAll()}
+function syncB(v){const el=document.getElementById('hdrClient');if(el)el.value=v}
+
+// ── TAB SWITCH ───────────────────────────────────────────────────
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('active',['editor','preview'][i]===t));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+t).classList.add('active');
+  if(t==='preview')renderPreview();
+  if(t==='editor'&&reviewMode)document.getElementById('view-editor').classList.add('review-active');
+}
+
+// ── PREVIEW ──────────────────────────────────────────────────────
+function renderPreview(){
+  const name=document.getElementById('clientName')?.value||'';
+  const url=document.getElementById('destURL')?.value||'';
+  const obj=document.getElementById('campObjective')?.value||'';
+  const type=document.getElementById('campType')?.value||'';
+  const geo=document.getElementById('geoTarget')?.value||'';
+  const dem=document.getElementById('demog')?.value||'';
+  const wa=document.getElementById('waMessage')?.value||'';
+  const phone=document.getElementById('extPhone')?.value||'';
+  const phoneHours=document.getElementById('extPhoneHours')?.value||'';
+  const snippetH=document.getElementById('snippetHeader')?.value||'';
+  const addr=document.getElementById('extAddress')?.value||'';
+  const city=document.getElementById('extCity')?.value||'';
+  const promoOcc=document.getElementById('promoOccasion')?.value||'';
+  const promoType=document.getElementById('promoType')?.value||'';
+  const promoVal=document.getElementById('promoValue')?.value||'';
+  const promoItem=document.getElementById('promoItem')?.value||'';
+  const c=cfg();const urlD=url.replace(/https?:\/\//,'').split('/')[0]||url;
+
+  const agHTML=AGs.map(ag=>{
+    const pinnedByPos={};ag.titles.forEach((t,i)=>{const p=ag.pins[i];if(p&&p!=='none'&&t.trim())pinnedByPos[p]=t});
+    const orderedTitles=[];['1','2','3'].forEach(pos=>{if(pinnedByPos[pos])orderedTitles.push(pinnedByPos[pos])});
+    const unpinned=ag.titles.filter((t,i)=>t.trim()&&(ag.pins[i]||'none')==='none');
+    const titlePreview=[...orderedTitles,...unpinned].slice(0,3).join(' | ')||(c?'(títulos pendientes)':'—');
+    const overT=ag.titles.filter(t=>t.length>(c?.titMax||30));
+    const overD=ag.descs.filter(d=>d.length>(c?.descMax||90));
+    const allKW=ag.keywords||[];const negKW=ag.negKeywords||[];
+    let warns='';
+    if(overT.length)warns+=`<div class="warn-box">⚠ ${overT.length} título(s) superan los ${c?.titMax||30} caracteres</div>`;
+    if(overD.length)warns+=`<div class="warn-box">⚠ ${overD.length} descripción(es) superan los ${c?.descMax||90} caracteres</div>`;
+    const kwPills=allKW.slice(0,10).map(k=>`<span class="kw-pill kp-m">${esc(k)}</span>`).join('')+(allKW.length>10?`<span class="kw-pill" style="background:var(--surf2);color:var(--tx3)">+${allKW.length-10} más</span>`:'');
+    const negPills=negKW.slice(0,8).map(k=>`<span class="kw-pill kp-n">${esc(k)}</span>`).join('');
+    const slChips=SLs.filter(s=>s.title).map(s=>`<span class="ext-chip" title="${esc(s.url||'')}">${esc(s.title)}${s.url?` <span style="font-size:10px;opacity:.6">↗</span>`:''}</span>`).join('');
+    const coChips=COs.filter(co=>co).map(co=>`<span class="ext-chip">${esc(co)}</span>`).join('');
+    let longSec='';
+    if(c?.nLong>0&&ag.longTitles){const lts=ag.longTitles.filter(lt=>lt.trim());if(lts.length)longSec=`<div style="margin-top:10px;padding-top:10px;border-top:.5px solid var(--bd)"><div style="font-size:11px;color:var(--tx3);font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Títulos largos (PMax)</div>${lts.map(lt=>`<div style="font-size:13px;color:var(--tx2);line-height:1.5;margin-bottom:3px">• ${esc(lt)}</div>`).join('')}</div>`}
+    let assetsSec='';if(c?.hasImg&&ag.assetsLink)assetsSec=`<div style="margin-top:8px;font-size:12px;color:var(--tx3)">📁 Recursos: <a href="${esc(ag.assetsLink)}" style="color:var(--mag)">${esc(ag.assetsLink)}</a></div>`;
+    const pinnedInfo=ag.titles.map((t,i)=>{const p=ag.pins[i];return p&&p!=='none'&&t.trim()?`<span style="font-size:11px;background:var(--mag-l);color:var(--mag);padding:2px 8px;border-radius:8px;margin-right:4px">📌 Pos.${p}: ${esc(t.slice(0,22))}${t.length>22?'…':''}</span>`:''}).join('');
+    return`<div style="margin-bottom:1.5rem"><span class="badge-ag">${esc(ag.name||'Sin nombre')}</span>${warns}${pinnedInfo?`<div style="margin-bottom:8px">${pinnedInfo}</div>`:''}
+      <div class="ad-prev"><div class="ad-url">📍 ${esc(urlD||'—')}</div><div class="ad-titles">${esc(titlePreview)}</div>
+        ${ag.descs.filter(d=>d.trim()).map(d=>`<div class="ad-desc">${esc(d)}</div>`).join('')}
+        ${longSec}${(slChips||coChips)?`<div class="ad-ext">${slChips}${coChips}</div>`:''}${assetsSec}
+      </div>
+      ${allKW.length?`<div style="margin-bottom:8px"><div style="font-size:12px;color:var(--tx3);font-weight:500;margin-bottom:6px">Keywords</div><div style="display:flex;flex-wrap:wrap;gap:6px">${kwPills}</div></div>`:''}
+      ${negKW.length?`<div><div style="font-size:12px;color:var(--tx3);font-weight:500;margin-bottom:6px">Términos excluidos</div><div style="display:flex;flex-wrap:wrap;gap:6px">${negPills}</div></div>`:''}
+    </div>`;
+  }).join('<hr class="divider">');
+
+  // Extensions summary
+  let extSummary='';
+  const extParts=[];
+  const activeSLs = SLs.filter(s=>s.title);
+  if(activeSLs.length) extParts.unshift(`🔗 <b>Sitelinks:</b> ${activeSLs.map(s=>`${esc(s.title)}${s.url?' ('+esc(s.url)+')':''}`).join(' · ')}`);
+  if(phone)extParts.push(`📞 <b>Llamada:</b> ${esc(phone)}${phoneHours?' ('+esc(phoneHours)+')':''}`);
+  if(snippetH&&snippetVals.length)extParts.push(`📋 <b>Fragmentos:</b> ${esc(snippetH)} — ${snippetVals.map(v=>esc(v)).join(', ')}`);
+  if(addr)extParts.push(`📍 <b>Ubicación:</b> ${esc(addr)}${city?', '+esc(city):''}`);
+  if(priceItems.length)extParts.push(`💲 <b>Precio:</b> ${priceItems.filter(p=>p.title).map(p=>`${esc(p.title)} ${esc(p.price)}`).join(' · ')}`);
+  if(promoVal&&promoItem)extParts.push(`🏷 <b>Promoción:</b> ${promoOcc?esc(promoOcc)+' — ':''}${esc(promoVal)} en ${esc(promoItem)}`);
+  if(extParts.length)extSummary=`<hr class="divider"><div style="font-size:14px;font-weight:600;margin-bottom:1rem">Extensiones adicionales</div>${extParts.map(p=>`<div style="font-size:13px;color:var(--tx2);margin-bottom:6px;line-height:1.5">${p}</div>`).join('')}`;
+
+  document.getElementById('previewContent').innerHTML=`
+    <div class="prev-hdr"><h1>Estrategia Google Ads${name?' — '+esc(name):''}</h1><p>Propuesta preparada por Magnama Digital${type?' · '+esc(type):''}</p></div>
+    <div class="prev-body">
+      <div class="stat-row">
+        <div class="stat-box"><div class="slbl">Objetivo</div><div class="sval">${esc(obj)||'—'}</div></div>
+        <div class="stat-box"><div class="slbl">Campaña</div><div class="sval">${esc(type)||'—'}</div></div>
+        <div class="stat-box"><div class="slbl">Zona geográfica</div><div class="sval">${esc(geo)||'—'}</div></div>
+      </div>
+      ${dem?`<div style="font-size:13px;color:var(--tx2);margin-bottom:1.5rem;padding:8px 12px;background:var(--surf2);border-radius:var(--r)">Segmentación: <strong>${esc(dem)}</strong></div>`:''}
+      <hr class="divider">
+      <div style="font-size:14px;font-weight:600;margin-bottom:1rem">Grupos de anuncios (${AGs.length})</div>
+      ${agHTML}
+      ${extSummary}
+      ${wa?`<hr class="divider"><div style="font-size:13px;font-weight:600;margin-bottom:8px">Mensaje sugerido al cliente (WhatsApp)</div><div class="msg-block">${esc(wa)}</div>`:''}
+    </div>`;
+  // Notes and comments intentionally excluded from client view
+}
+
+// ── SAVE / LOAD ──────────────────────────────────────────────────
+function collectState(){
+  return{clientName:document.getElementById('clientName')?.value||'',destURL:document.getElementById('destURL')?.value||'',campObjective:document.getElementById('campObjective')?.value||'',campType:document.getElementById('campType')?.value||'',geoTarget:document.getElementById('geoTarget')?.value||'',demog:document.getElementById('demog')?.value||'',waMessage:document.getElementById('waMessage')?.value||'',internalNotes:document.getElementById('internalNotes')?.value||'',extPhone:document.getElementById('extPhone')?.value||'',extPhoneHours:document.getElementById('extPhoneHours')?.value||'',snippetHeader:document.getElementById('snippetHeader')?.value||'',extAddress:document.getElementById('extAddress')?.value||'',extCity:document.getElementById('extCity')?.value||'',promoOccasion:document.getElementById('promoOccasion')?.value||'',promoType:document.getElementById('promoType')?.value||'',promoValue:document.getElementById('promoValue')?.value||'',promoItem:document.getElementById('promoItem')?.value||'',AGs,SLs,COs,snippetVals,priceItems,fieldComments};
+}
+function saveProgress(){
+  const state=collectState();const json=JSON.stringify(state).replace(/\\/g,'\\\\').replace(/`/g,'\\`');
+  const html=document.documentElement.outerHTML;const clean=html.replace(/\/\/ __SS__[\s\S]*?\/\/ __SE__\n?/g,'');
+  const inject=`// __SS__\n(function(){window.__S=JSON.parse(\`${json}\`)})();\n// __SE__\n`;
+  const final=clean.replace('// INIT',inject+'// INIT');
+  const blob=new Blob([final],{type:'text/html;charset=utf-8'});const a=document.createElement('a');
+  const cn=(document.getElementById('clientName')?.value||'estrategia').replace(/\s+/g,'_');
+  a.download=`Magnama_GoogleAds_${cn}.html`;a.href=URL.createObjectURL(blob);a.click();URL.revokeObjectURL(a.href);
+  const s=document.getElementById('saveStatus');s.textContent='✓ Guardado';setTimeout(()=>s.textContent='',3000);
+}
+function loadSavedState(){
+  const s=window.__S;if(!s)return;
+  if(s.AGs)AGs=s.AGs;if(s.SLs)SLs=s.SLs;if(s.COs)COs=s.COs;
+  if(s.snippetVals)snippetVals=s.snippetVals;if(s.priceItems)priceItems=s.priceItems;
+  if(s.fieldComments)fieldComments=s.fieldComments;
+  setTimeout(()=>{
+    ['clientName','destURL','campObjective','campType','geoTarget','demog','waMessage','internalNotes','extPhone','extPhoneHours','snippetHeader','extAddress','extCity','promoOccasion','promoType','promoValue','promoItem'].forEach(id=>{const el=document.getElementById(id);if(el&&s[id])el.value=s[id]});
+    const h=document.getElementById('hdrClient');if(h&&s.clientName)h.value=s.clientName;
+    // Restore field comments visual state
+    Object.keys(fieldComments).forEach(fid=>{if(fieldComments[fid]){const w=document.querySelector(`[data-fid="${fid}"]`);if(w)w.classList.add('has-comment');const t=document.getElementById(`cb-text-${fid}`);if(t)t.textContent=fieldComments[fid];const i=document.getElementById(`cb-input-${fid}`);if(i)i.value=fieldComments[fid]}});
+    // Restore AG-level comments
+    AGs.forEach((ag,agIdx)=>{
+      (ag.titleComments||[]).forEach((tc,i)=>{if(tc){const w=document.querySelector(`[data-fid="title_${agIdx}_${i}"]`);if(w)w.classList.add('has-comment')}});
+      (ag.descComments||[]).forEach((dc,i)=>{if(dc){const w=document.querySelector(`[data-fid="desc_${agIdx}_${i}"]`);if(w)w.classList.add('has-comment')}});
+    });
+    onCampChange();updateAll();updateCommentCount();
+  },50);
+}
+
+// INIT
+renderAGs();renderSLs();renderCOs();renderSnippets();renderPrice();loadSavedState();updateAll();
+</script>
+</body>
+</html>
