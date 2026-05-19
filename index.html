@@ -72,15 +72,8 @@ select{cursor:pointer}
 .btn-comment-save{padding:5px 10px;font-size:12px;border-radius:7px;border:none;background:var(--comment-red);color:#fff;cursor:pointer;font-family:inherit;font-weight:500}
 .btn-comment-clear{padding:5px 10px;font-size:12px;border-radius:7px;border:1px solid var(--bd2);background:var(--surf);color:var(--tx2);cursor:pointer;font-family:inherit}
 
-/* When NOT in review mode: comments are visible (read-only) but actions are hidden */
-:not(.review-active) .comment-bubble-actions { display: none !important; }
-:not(.review-active) .comment-bubble-text { margin-bottom: 0; }
-/* In review mode: show full comment bubble with actions */
-.review-active .comment-bubble-actions { display: flex; }
-
-/* Collaborator sees comment in red but can't touch it */
+/* Comment bubble always hidden until has-comment */
 .field-wrap.has-comment .comment-bubble { display: block; }
-
 .review-mode-bar{background:#fef2f2;border:1px solid var(--comment-red-bd);border-radius:var(--r);padding:10px 16px;margin-bottom:1rem;font-size:13px;color:var(--comment-red);display:flex;align-items:center;justify-content:space-between;gap:10px}
 .review-mode-bar b{font-weight:600}
 .review-toggle{padding:6px 14px;border-radius:20px;border:1.5px solid var(--comment-red);background:transparent;color:var(--comment-red);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
@@ -566,35 +559,40 @@ let reviewMode=false;
 // ── REVIEW MODE ───────────────────────────────────────────────────
 const REVIEW_PASSWORD = 'Magnama1423';
 
+function setCommentActionsVisible(visible) {
+  document.querySelectorAll('.comment-bubble-actions').forEach(el => {
+    el.style.display = visible ? 'flex' : 'none';
+  });
+  document.querySelectorAll('.comment-bubble-input').forEach(el => {
+    el.disabled = !visible;
+  });
+}
+
 function enterReviewMode() {
   const pwd = prompt('Ingresá la clave para activar el modo revisión:');
   if (pwd === null) return;
-  if (pwd !== REVIEW_PASSWORD) {
-    alert('Clave incorrecta.');
-    return;
-  }
+  if (pwd !== REVIEW_PASSWORD) { alert('Clave incorrecta.'); return; }
   reviewMode = true;
   document.getElementById('view-editor').classList.add('review-active');
   document.getElementById('reviewBar').style.display = 'flex';
   document.getElementById('reviewModeHdrBtn').textContent = '🔒 En revisión';
   document.getElementById('reviewModeHdrBtn').style.background = 'rgba(220,38,38,.25)';
   document.getElementById('reviewModeHdrBtn').onclick = exitReviewMode;
+  setCommentActionsVisible(true);
   updateCommentCount();
 }
 
 function exitReviewMode() {
   const pwd = prompt('Ingresá la clave para salir del modo revisión:');
   if (pwd === null) return;
-  if (pwd !== REVIEW_PASSWORD) {
-    alert('Clave incorrecta.');
-    return;
-  }
+  if (pwd !== REVIEW_PASSWORD) { alert('Clave incorrecta.'); return; }
   reviewMode = false;
   document.getElementById('view-editor').classList.remove('review-active');
   document.getElementById('reviewBar').style.display = 'none';
   document.getElementById('reviewModeHdrBtn').textContent = '💬 Modo revisión';
   document.getElementById('reviewModeHdrBtn').style.background = '';
   document.getElementById('reviewModeHdrBtn').onclick = enterReviewMode;
+  setCommentActionsVisible(false);
 }
 function updateCommentCount(){
   const total=Object.values(fieldComments).filter(v=>v&&v.trim()).length;
@@ -853,7 +851,7 @@ function livePin(i,sel){AGs[activeAG].pins[i]=sel.value;sel.className='pin-sel'+
 function liveLong(i,inp){if(!AGs[activeAG].longTitles)AGs[activeAG].longTitles=[];AGs[activeAG].longTitles[i]=inp.value;const len=inp.value.length;const b=inp.closest('.ib')?.querySelector('.char');if(b){b.className=`char ${bcl(len,90)}`;b.textContent=`${len}/90`}updateProgress()}
 function liveDesc(i,ta){AGs[activeAG].descs[i]=ta.value;const max=cfg()?.descMax||90;const len=ta.value.length;const b=ta.closest('.ibt')?.querySelector('.char');if(b){b.className=`char ${bcl(len,max)}`;b.textContent=`${len}/${max}`}updateProgress()}
 function updAGName(v){AGs[activeAG].name=v;const t=document.querySelectorAll('.ag-tab')[activeAG];if(t)t.textContent=v||'Grupo '+(activeAG+1)}
-function setAG(i){activeAG=i;renderAGs();if(reviewMode)document.getElementById('view-editor').classList.add('review-active')}
+function setAG(i){activeAG=i;renderAGs();if(reviewMode){document.getElementById('view-editor').classList.add('review-active');setCommentActionsVisible(true);}else{setCommentActionsVisible(false);}}
 function addAG(){AGs.push({name:'',titles:Array(15).fill(''),pins:Array(15).fill('none'),longTitles:Array(5).fill(''),descs:Array(4).fill(''),keywords:[],negKeywords:[],assetsLink:'',titleComments:Array(15).fill(''),descComments:Array(4).fill('')});activeAG=AGs.length-1;renderAGs()}
 function removeAG(){if(AGs.length<=1)return;AGs.splice(activeAG,1);activeAG=Math.min(activeAG,AGs.length-1);renderAGs()}
 
@@ -1151,6 +1149,8 @@ function loadSavedState(){
 
 // INIT
 renderAGs();renderSLs();renderCOs();renderSnippets();renderPrice();loadSavedState();updateAll();
+// Hide comment actions on load — only visible when review mode is active
+setTimeout(() => setCommentActionsVisible(false), 100);
 </script>
 </body>
 </html>
